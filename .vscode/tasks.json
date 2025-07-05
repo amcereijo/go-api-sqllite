@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run API Server",
+            "type": "shell",
+            "command": "go run cmd/api/main.go",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": true
+        }
+    ]
+}
