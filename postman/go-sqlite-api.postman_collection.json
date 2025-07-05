@@ -1,0 +1,82 @@
+{
+  "info": {
+    "name": "Go SQLite API",
+    "description": "REST API for Item CRUD operations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8080/api/health",
+        "header": []
+      }
+    },
+    {
+      "name": "Create Item",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/items",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Item\",\n  \"value\": 29.99\n}"
+        }
+      }
+    },
+    {
+      "name": "Get All Items",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8080/api/items",
+        "header": []
+      }
+    },
+    {
+      "name": "Get Single Item",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8080/api/items/{{item_id}}",
+        "header": []
+      }
+    },
+    {
+      "name": "Update Item",
+      "request": {
+        "method": "PUT",
+        "url": "http://localhost:8080/api/items/{{item_id}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Item\",\n  \"value\": 39.99\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Item",
+      "request": {
+        "method": "DELETE",
+        "url": "http://localhost:8080/api/items/{{item_id}}",
+        "header": []
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "item_id",
+      "value": "123e4567-e89b-12d3-a456-426614174000",
+      "type": "string"
+    }
+  ]
+}

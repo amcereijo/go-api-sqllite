@@ -12,6 +12,8 @@ This is a dual REST and gRPC API built with Go and SQLite. The project follows a
 ├── examples
 │   └── grpc-client
 │       └── main.go
+├── postman
+│   └── go-sqlite-api.postman_collection.json
 ├── proto
 │   ├── item.proto
 │   ├── item.pb.go
@@ -225,6 +227,32 @@ go run examples/grpc-client/main.go
 - `400 Bad Request` - Invalid input (e.g., missing required fields)
 - `404 Not Found` - Resource not found
 - `500 Internal Server Error` - Server error
+
+### Postman Collection
+
+A complete Postman collection for testing the API is available in the `postman` directory. To use it:
+
+1. Open Postman
+2. Click "Import" and select `postman/go-sqlite-api.postman_collection.json`
+3. Create a new environment in Postman and add a variable:
+   - `item_id`: The ID of an item you've created (you'll get this after creating your first item)
+
+Example Usage Flow:
+
+1. **Health Check**
+   - Send the "Health Check" request to verify the API is running
+
+2. **Create Item**
+   - Send the "Create Item" request
+   - From the response, copy the `id` field
+
+3. **Set Environment Variable**
+   - In Postman, set the `item_id` environment variable to the ID you copied
+
+4. **Test Other Operations**
+   - Now you can test Get, Update, and Delete operations using the saved ID
+
+The collection includes all API endpoints with proper headers, request bodies, and environment variables set up.
 
 ## Building and Development
 
