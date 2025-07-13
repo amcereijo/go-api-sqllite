@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/angel/go-api-sqlite/internal/models"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
@@ -28,153 +29,197 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
 
-// CreateItem handles POST requests to create a new item
-func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Handling CreateItem request from %s", r.RemoteAddr)
-	var item models.Item
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+// CreateFeature handles POST requests to create a new feature flag
+func (h *Handler) CreateFeature(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Handling CreateFeature request from %s", r.RemoteAddr)
+	var feature models.Feature
+	if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
 		log.Printf("Error decoding request body: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate required fields
-	if item.Name == "" {
-		log.Printf("Invalid request: name is required")
-		http.Error(w, "name is required", http.StatusBadRequest)
+	if feature.Name == "" || feature.ResourceID == "" {
+		log.Printf("Invalid request: name and resourceId are required")
+		http.Error(w, "name and resourceId are required", http.StatusBadRequest)
 		return
 	}
 
-	// Generate UUID for new item
-	item.ID = uuid.New().String()
-	item.CreatedAt = time.Now()
+	// Generate UUID for new feature
+	feature.ID = uuid.New().String()
+	feature.CreatedAt = time.Now()
+	if !feature.Active {
+		feature.Active = true // Set default to true
+	}
+
+	valueStr, err := feature.Value.MarshalJSON()
+	if err != nil {
+		log.Printf("Error marshaling value: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	// Insert into database
-	_, err := h.db.Exec("INSERT INTO items (id, name, value, created_at) VALUES (?, ?, ?, ?)",
-		item.ID, item.Name, item.Value, item.CreatedAt)
+	_, err = h.db.Exec("INSERT INTO features (id, name, value, resource_id, active, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+		feature.ID, feature.Name, string(valueStr), feature.ResourceID, feature.Active, feature.CreatedAt)
 	if err != nil {
-		log.Printf("Error inserting item into database: %v", err)
+		log.Printf("Error inserting feature into database: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("Successfully created item with ID: %s", item.ID)
+	log.Printf("Successfully created feature with ID: %s", feature.ID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(item)
+	json.NewEncoder(w).Encode(feature)
 }
 
-// GetItems handles GET requests to retrieve all items
-func (h *Handler) GetItems(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Handling GetItems request from %s", r.RemoteAddr)
-	rows, err := h.db.Query("SELECT id, name, value, created_at FROM items")
+// GetFeatures handles GET requests to retrieve all features
+func (h *Handler) GetFeatures(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Handling GetFeatures request from %s", r.RemoteAddr)
+
+	resourceID := r.URL.Query().Get("resourceId")
+	var rows *sql.Rows
+	var err error
+
+	if resourceID != "" {
+		rows, err = h.db.Query("SELECT id, name, value, resource_id, active, created_at FROM features WHERE resource_id = ?", resourceID)
+	} else {
+		rows, err = h.db.Query("SELECT id, name, value, resource_id, active, created_at FROM features")
+	}
+
 	if err != nil {
-		log.Printf("Error querying items: %v", err)
+		log.Printf("Error querying features: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	items := make([]models.Item, 0)
+	features := make([]models.Feature, 0)
 	for rows.Next() {
-		var item models.Item
-		if err := rows.Scan(&item.ID, &item.Name, &item.Value, &item.CreatedAt); err != nil {
-			log.Printf("Error scanning item row: %v", err)
+		var feature models.Feature
+		var valueStr string
+		if err := rows.Scan(&feature.ID, &feature.Name, &valueStr, &feature.ResourceID, &feature.Active, &feature.CreatedAt); err != nil {
+			log.Printf("Error scanning feature row: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		items = append(items, item)
+		feature.Value = json.RawMessage(valueStr)
+		features = append(features, feature)
 	}
-	log.Printf("Successfully retrieved %d items", len(items))
-
+	log.Printf("Successfully retrieved %d features", len(features))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	json.NewEncoder(w).Encode(features)
 }
 
-// GetItem handles GET requests to retrieve a specific item
-func (h *Handler) GetItem(w http.ResponseWriter, r *http.Request) {
+// GetFeature handles GET requests to retrieve a specific feature
+func (h *Handler) GetFeature(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	log.Printf("Handling GetItem request for ID: %s from %s", id, r.RemoteAddr)
+	log.Printf("Handling GetFeature request for ID: %s from %s", id, r.RemoteAddr)
 
-	var item models.Item
-	err := h.db.QueryRow("SELECT id, name, value, created_at FROM items WHERE id = ?", id).
-		Scan(&item.ID, &item.Name, &item.Value, &item.CreatedAt)
+	var feature models.Feature
+	var valueStr string
+	err := h.db.QueryRow("SELECT id, name, value, resource_id, active, created_at FROM features WHERE id = ?", id).
+		Scan(&feature.ID, &feature.Name, &valueStr, &feature.ResourceID, &feature.Active, &feature.CreatedAt)
 
 	if err == sql.ErrNoRows {
-		log.Printf("Item not found with ID: %s", id)
-		http.Error(w, "Item not found", http.StatusNotFound)
+		log.Printf("Feature not found with ID: %s", id)
+		http.Error(w, "Feature not found", http.StatusNotFound)
 		return
 	} else if err != nil {
-		log.Printf("Error retrieving item with ID %s: %v", id, err)
+		log.Printf("Error retrieving feature with ID %s: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("Successfully retrieved item with ID: %s", id)
+
+	feature.Value = json.RawMessage(valueStr)
+	log.Printf("Successfully retrieved feature with ID: %s", id)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	json.NewEncoder(w).Encode(feature)
 }
 
-// UpdateItem handles PUT requests to update an existing item
-func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
+// UpdateFeature handles PUT requests to update an existing feature
+func (h *Handler) UpdateFeature(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	log.Printf("Handling UpdateItem request for ID: %s from %s", id, r.RemoteAddr)
+	log.Printf("Handling UpdateFeature request for ID: %s from %s", id, r.RemoteAddr)
 
-	var item models.Item
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+	var feature models.Feature
+	if err := json.NewDecoder(r.Body).Decode(&feature); err != nil {
+		log.Printf("Error decoding request body: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	result, err := h.db.Exec("UPDATE items SET name = ?, value = ? WHERE id = ?",
-		item.Name, item.Value, id)
+	feature.ID = id // Set ID from URL parameter
+
+	// Validate required fields
+	if feature.Name == "" || feature.ResourceID == "" {
+		log.Printf("Invalid request: name and resourceId are required")
+		http.Error(w, "name and resourceId are required", http.StatusBadRequest)
+		return
+	}
+
+	valueStr, err := feature.Value.MarshalJSON()
 	if err != nil {
+		log.Printf("Error marshaling value: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.db.Exec("UPDATE features SET name = ?, value = ?, resource_id = ?, active = ? WHERE id = ?",
+		feature.Name, string(valueStr), feature.ResourceID, feature.Active, id)
+	if err != nil {
+		log.Printf("Error updating feature: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if rowsAffected == 0 {
-		log.Printf("No item found to update with ID: %s", id)
-		http.Error(w, "Item not found", http.StatusNotFound)
+		log.Printf("No feature found to update with ID: %s", id)
+		http.Error(w, "Feature not found", http.StatusNotFound)
 		return
 	}
 
-	log.Printf("Successfully updated item with ID: %s", id)
-	item.ID = id
+	log.Printf("Successfully updated feature with ID: %s", id)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	json.NewEncoder(w).Encode(feature)
 }
 
-// DeleteItem handles DELETE requests to remove an item
-func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
+// DeleteFeature handles DELETE requests to remove a feature
+func (h *Handler) DeleteFeature(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
-	log.Printf("Handling DeleteItem request for ID: %s from %s", id, r.RemoteAddr)
+	log.Printf("Handling DeleteFeature request for ID: %s from %s", id, r.RemoteAddr)
 
-	result, err := h.db.Exec("DELETE FROM items WHERE id = ?", id)
+	result, err := h.db.Exec("DELETE FROM features WHERE id = ?", id)
 	if err != nil {
+		log.Printf("Error deleting feature: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if rowsAffected == 0 {
-		log.Printf("No item found to delete with ID: %s", id)
-		http.Error(w, "Item not found", http.StatusNotFound)
+		log.Printf("No feature found to delete with ID: %s", id)
+		http.Error(w, "Feature not found", http.StatusNotFound)
 		return
 	}
 
-	log.Printf("Successfully deleted item with ID: %s", id)
+	log.Printf("Successfully deleted feature with ID: %s", id)
 	w.WriteHeader(http.StatusNoContent)
 }

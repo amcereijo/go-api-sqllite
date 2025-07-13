@@ -19,12 +19,14 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("Error opening test database: %v", err)
 	}
 
-	// Create the items table
+	// Create the features table
 	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS items (
+		CREATE TABLE IF NOT EXISTS features (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
-			value REAL NOT NULL,
+			value TEXT NOT NULL,
+			resource_id TEXT NOT NULL,
+			active BOOLEAN DEFAULT TRUE,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 	`)
