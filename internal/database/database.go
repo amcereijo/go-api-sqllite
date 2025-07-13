@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -31,10 +32,12 @@ func InitDB() (*sql.DB, error) {
 func createTables(db *sql.DB) error {
 	// Example table creation - modify according to your needs
 	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS items (
+	CREATE TABLE IF NOT EXISTS features (
 		id TEXT PRIMARY KEY,
 		name TEXT NOT NULL,
-		value REAL NOT NULL,
+		value TEXT NOT NULL,
+		resource_id TEXT NOT NULL,
+		active BOOLEAN DEFAULT TRUE,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 

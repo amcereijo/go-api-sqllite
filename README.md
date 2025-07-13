@@ -1,6 +1,6 @@
-# Go API with SQLite
+# Feature Flag Service with Go and SQLite
 
-This is a dual REST and gRPC API built with Go and SQLite. The project follows a standard Go project layout and includes basic CRUD operations with both HTTP and gRPC endpoints.
+This is a dual REST and gRPC API built with Go and SQLite that provides feature flag management functionality. The service allows you to manage feature flags for different resources, supporting various value types (string, number, object) and flag states. The project follows a standard Go project layout and includes comprehensive CRUD operations with both HTTP and gRPC endpoints.
 
 ## Project Structure
 
@@ -15,22 +15,27 @@ This is a dual REST and gRPC API built with Go and SQLite. The project follows a
 ├── postman
 │   └── go-sqlite-api.postman_collection.json
 ├── proto
-│   ├── item.proto
-│   ├── item.pb.go
-│   └── item_grpc.pb.go
+│   ├── feature.proto
+│   ├── feature.pb.go
+│   └── feature_grpc.pb.go
 └── internal
     ├── database
     │   └── database.go
     ├── grpc
-    │   ├── item_server.go
+    │   ├── feature_server.go
     │   └── tests
-    │       └── grpc_test.go
+    │       └── feature_test.go
     ├── handlers
-    │   └── handlers.go
+    │   ├── handlers.go
+    │   └── tests
+    │       ├── create_feature_test.go
+    │       ├── feature_operations_test.go
+    │       ├── get_features_test.go
+    │       └── test_setup.go
     ├── middleware
     │   └── middleware.go
     └── models
-        └── item.go
+        └── feature.go
 ```
 
 ## Requirements
@@ -46,7 +51,14 @@ This is a dual REST and gRPC API built with Go and SQLite. The project follows a
    ```bash
    go mod download
    ```
-3. Run the application:
+3. Generate Protocol Buffer code (if modified):
+   ```bash
+   protoc -I=proto --go_out=. --go_opt=paths=source_relative \
+          --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+          proto/feature.proto
+   ```
+
+4. Run the application:
    ```bash
    go run cmd/api/main.go
    ```
@@ -254,6 +266,113 @@ Example Usage Flow:
 
 The collection includes all API endpoints with proper headers, request bodies, and environment variables set up.
 
+## Feature Flag Overview
+
+The service provides a flexible feature flag system that supports:
+
+- Dynamic feature values (strings, numbers, objects)
+- Resource-based feature grouping
+- Feature activation/deactivation
+- REST and gRPC interfaces
+
+### Feature Flag Model
+
+Each feature flag consists of:
+
+- `id`: Auto-generated unique identifier
+- `name`: Feature name
+- `value`: Feature value (supports string, number, or JSON object)
+- `resourceId`: Resource identifier for grouping features
+- `active`: Feature state (true/false, defaults to true)
+- `createdAt`: Creation timestamp
+
+### REST API Endpoints
+
+#### Create Feature Flag
+```http
+POST /api/features
+Content-Type: application/json
+
+{
+  "name": "dark-mode",
+  "value": true,
+  "resourceId": "ui-settings",
+  "active": true
+}
+```
+
+#### Get Features
+```http
+GET /api/features           # Get all features
+GET /api/features?resourceId=ui-settings  # Get features for a specific resource
+```
+
+#### Get Feature by ID
+```http
+GET /api/features/{id}
+```
+
+#### Update Feature
+```http
+PUT /api/features/{id}
+Content-Type: application/json
+
+{
+  "name": "dark-mode",
+  "value": false,
+  "resourceId": "ui-settings",
+  "active": false
+}
+```
+
+#### Delete Feature
+```http
+DELETE /api/features/{id}
+```
+
+### Example Value Types
+
+The feature value field supports various types:
+
+```json
+// String value
+{
+  "name": "theme",
+  "value": "dark",
+  "resourceId": "ui-settings"
+}
+
+// Number value
+{
+  "name": "max-items",
+  "value": 100,
+  "resourceId": "pagination"
+}
+
+// Object value
+{
+  "name": "homepage-config",
+  "value": {
+    "showBanner": true,
+    "layout": "grid",
+    "columns": 3
+  },
+  "resourceId": "layout-settings"
+}
+```
+
+### gRPC Service
+
+The service also provides a gRPC interface with the following methods:
+
+- `CreateFeature`
+- `GetFeature`
+- `ListFeatures`
+- `UpdateFeature`
+- `DeleteFeature`
+
+See `proto/feature.proto` for the complete service definition.
+
 ## Building and Development
 
 ### Building the Project
@@ -321,37 +440,21 @@ When making changes to the codebase:
 
 ## Testing
 
-The project includes comprehensive test coverage for all API endpoints. Tests use an in-memory SQLite database for isolation.
+The project includes comprehensive test coverage for both REST and gRPC interfaces. Run the tests with:
 
-### Running Tests
-
-Run all tests:
 ```bash
 go test ./...
 ```
 
-Run tests for a specific package:
-```bash
-go test ./internal/handlers/tests/...
-```
+Test coverage includes:
+- Feature CRUD operations via REST API
+- Feature CRUD operations via gRPC
+- Input validation
+- Error handling
+- Resource-based feature filtering
+- Value type handling (string, number, object)
 
-Run tests with coverage:
-```bash
-go test ./... -cover
-```
-
-### Test Structure
-
-- `internal/handlers/tests/`
-  - `test_setup.go` - Common test utilities and database setup
-  - `health_test.go` - Health check endpoint tests
-  - `create_item_test.go` - Item creation tests
-  - `get_items_test.go` - List items tests
-  - `get_item_test.go` - Single item retrieval tests
-  - `update_item_test.go` - Item update tests
-  - `delete_item_test.go` - Item deletion tests
-- `internal/grpc/tests/`
-  - `grpc_test.go` - Comprehensive gRPC service tests using bufconn
+The tests use an in-memory SQLite database to ensure isolation and fast execution.
 
 ## Development
 

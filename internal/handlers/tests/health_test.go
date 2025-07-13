@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/angel/go-api-sqlite/internal/handlers"
+
 	"github.com/stretchr/testify/assert"
 )
 
