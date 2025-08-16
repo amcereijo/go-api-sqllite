@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Go SQLite API",
-    "description": "REST API for Item CRUD operations",
+    "name": "Go SQLite API - Feature Flags",
+    "description": "REST API for Feature Flag CRUD operations",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -14,10 +14,10 @@
       }
     },
     {
-      "name": "Create Item",
+      "name": "Create Feature",
       "request": {
         "method": "POST",
-        "url": "http://localhost:8080/api/items",
+        "url": "http://localhost:8080/api/features",
         "header": [
           {
             "key": "Content-Type",
@@ -26,31 +26,39 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Test Item\",\n  \"value\": 29.99\n}"
+          "raw": "{\n  \"name\": \"dark-mode\",\n  \"value\": true,\n  \"resourceId\": \"ui-settings\",\n  \"active\": true\n}"
         }
       }
     },
     {
-      "name": "Get All Items",
+      "name": "Get All Features",
       "request": {
         "method": "GET",
-        "url": "http://localhost:8080/api/items",
+        "url": "http://localhost:8080/api/features",
         "header": []
       }
     },
     {
-      "name": "Get Single Item",
+      "name": "Get Features by Resource",
       "request": {
         "method": "GET",
-        "url": "http://localhost:8080/api/items/{{item_id}}",
+        "url": "http://localhost:8080/api/features?resourceId={{resource_id}}",
         "header": []
       }
     },
     {
-      "name": "Update Item",
+      "name": "Get Single Feature",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8080/api/features/{{feature_id}}",
+        "header": []
+      }
+    },
+    {
+      "name": "Update Feature",
       "request": {
         "method": "PUT",
-        "url": "http://localhost:8080/api/items/{{item_id}}",
+        "url": "http://localhost:8080/api/features/{{feature_id}}",
         "header": [
           {
             "key": "Content-Type",
@@ -59,23 +67,28 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Updated Item\",\n  \"value\": 39.99\n}"
+          "raw": "{\n  \"name\": \"dark-mode\",\n  \"value\": false,\n  \"resourceId\": \"ui-settings\",\n  \"active\": false\n}"
         }
       }
     },
     {
-      "name": "Delete Item",
+      "name": "Delete Feature",
       "request": {
         "method": "DELETE",
-        "url": "http://localhost:8080/api/items/{{item_id}}",
+        "url": "http://localhost:8080/api/features/{{feature_id}}",
         "header": []
       }
     }
   ],
   "variable": [
     {
-      "key": "item_id",
+      "key": "feature_id",
       "value": "123e4567-e89b-12d3-a456-426614174000",
+      "type": "string"
+    },
+    {
+      "key": "resource_id",
+      "value": "ui-settings",
       "type": "string"
     }
   ]

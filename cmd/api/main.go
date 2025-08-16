@@ -8,6 +8,7 @@ import (
 	"github.com/angel/go-api-sqlite/internal/database"
 	grpcserver "github.com/angel/go-api-sqlite/internal/grpc"
 	"github.com/angel/go-api-sqlite/internal/handlers"
+	"github.com/angel/go-api-sqlite/internal/middleware"
 	pb "github.com/angel/go-api-sqlite/proto"
 
 	"github.com/gorilla/mux"
@@ -25,12 +26,16 @@ func main() {
 	// Create router
 	router := mux.NewRouter()
 
+	// Apply CORS configuration
+	router.Methods("OPTIONS").HandlerFunc(middleware.OptionsCors)
+	router.Use(middleware.CorsMiddleware)
+
 	// Initialize handlers
 	h := handlers.NewHandler(db)
 
 	// Define routes
 	router.HandleFunc("/api/health", h.HealthCheck).Methods("GET")
-	router.HandleFunc("/api/features", h.GetFeatures).Methods("GET")
+	router.HandleFunc("/api/features", h.GetFeatures).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/features", h.CreateFeature).Methods("POST")
 	router.HandleFunc("/api/features/{id}", h.GetFeature).Methods("GET")
 	router.HandleFunc("/api/features/{id}", h.UpdateFeature).Methods("PUT")

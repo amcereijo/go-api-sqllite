@@ -81,143 +81,188 @@ The API provides both REST (HTTP) and gRPC endpoints for all operations.
   {"status": "healthy"}
   ```
 
-### Items
+### Features
 
-#### Create Item
-- `POST /api/items` - Create a new item
+#### Create Feature
+- `POST /api/features` - Create a new feature flag
   ```bash
-  curl -X POST http://localhost:8080/api/items \
+  curl -X POST http://localhost:8080/api/features \
     -H "Content-Type: application/json" \
     -d '{
-      "name": "Test Item",
-      "value": 29.99
+      "name": "dark-mode",
+      "value": true,
+      "resourceId": "ui-settings",
+      "active": true
     }'
   ```
   Response:
   ```json
   {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "name": "Test Item",
-    "value": 29.99,
+    "name": "dark-mode",
+    "value": true,
+    "resourceId": "ui-settings",
+    "active": true,
     "created_at": "2025-07-05T00:00:00Z"
   }
   ```
 
-#### Get All Items
-- `GET /api/items` - Retrieve all items
+#### Get All Features
+- `GET /api/features` - Retrieve all features
+- `GET /api/features?resourceId=ui-settings` - Retrieve features by resource
   ```bash
-  curl http://localhost:8080/api/items
+  curl http://localhost:8080/api/features
   ```
   Response:
   ```json
   [
     {
       "id": "123e4567-e89b-12d3-a456-426614174000",
-      "name": "Test Item",
-      "value": 29.99,
+      "name": "dark-mode",
+      "value": true,
+      "resourceId": "ui-settings",
+      "active": true,
       "created_at": "2025-07-05T00:00:00Z"
     }
   ]
   ```
 
-#### Get Single Item
-- `GET /api/items/{id}` - Retrieve a specific item
+#### Get Single Feature
+- `GET /api/features/{id}` - Retrieve a specific feature
   ```bash
-  curl http://localhost:8080/api/items/123e4567-e89b-12d3-a456-426614174000
+  curl http://localhost:8080/api/features/123e4567-e89b-12d3-a456-426614174000
   ```
   Response:
   ```json
   {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "name": "Test Item",
-    "value": 29.99,
+    "name": "dark-mode",
+    "value": true,
+    "resourceId": "ui-settings",
+    "active": true,
     "created_at": "2025-07-05T00:00:00Z"
   }
   ```
 
-#### Update Item
-- `PUT /api/items/{id}` - Update an existing item
+#### Update Feature
+- `PUT /api/features/{id}` - Update an existing feature
   ```bash
-  curl -X PUT http://localhost:8080/api/items/123e4567-e89b-12d3-a456-426614174000 \
+  curl -X PUT http://localhost:8080/api/features/123e4567-e89b-12d3-a456-426614174000 \
     -H "Content-Type: application/json" \
     -d '{
-      "name": "Updated Item",
-      "value": 39.99
+      "name": "dark-mode",
+      "value": false,
+      "resourceId": "ui-settings",
+      "active": false
     }'
   ```
   Response:
   ```json
   {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "name": "Updated Item",
-    "value": 39.99,
+    "name": "dark-mode",
+    "value": false,
+    "resourceId": "ui-settings",
+    "active": false,
     "created_at": "2025-07-05T00:00:00Z"
   }
   ```
 
-#### Delete Item
-- `DELETE /api/items/{id}` - Delete an item
+#### Delete Feature
+- `DELETE /api/features/{id}` - Delete a feature
   ```bash
-  curl -X DELETE http://localhost:8080/api/items/123e4567-e89b-12d3-a456-426614174000
+  curl -X DELETE http://localhost:8080/api/features/123e4567-e89b-12d3-a456-426614174000
   ```
   Response: `204 No Content`
 
 ### gRPC Service
 
-The gRPC service is defined in `proto/item.proto` and provides the following operations:
+The gRPC service is defined in `proto/feature.proto` and provides the following operations:
 
-#### CreateItem
+#### CreateFeature
 ```protobuf
-rpc CreateItem(CreateItemRequest) returns (Item)
+rpc CreateFeature(CreateFeatureRequest) returns (Feature)
 ```
 Example using the provided client:
 ```go
-item, err := client.CreateItem(ctx, &pb.CreateItemRequest{
-    Name:  "Test Item",
-    Value: 29.99,
+value, err := structpb.NewValue(map[string]interface{}{
+    "enabled": true,
+    "config": map[string]interface{}{
+        "timeout": 30,
+        "retries": 3,
+    },
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+feature, err := client.CreateFeature(ctx, &pb.CreateFeatureRequest{
+    Name:       "retry-config",
+    Value:      value,
+    ResourceId: "api-settings",
+    Active:     true,
 })
 ```
 
-#### GetItem
+#### GetFeature
 ```protobuf
-rpc GetItem(GetItemRequest) returns (Item)
+rpc GetFeature(GetFeatureRequest) returns (Feature)
 ```
 Example:
 ```go
-item, err := client.GetItem(ctx, &pb.GetItemRequest{
+feature, err := client.GetFeature(ctx, &pb.GetFeatureRequest{
     Id: "123e4567-e89b-12d3-a456-426614174000",
 })
 ```
 
-#### ListItems
+#### ListFeatures
 ```protobuf
-rpc ListItems(ListItemsRequest) returns (ListItemsResponse)
+rpc ListFeatures(ListFeaturesRequest) returns (ListFeaturesResponse)
 ```
 Example:
 ```go
-items, err := client.ListItems(ctx, &pb.ListItemsRequest{})
-```
+// Get all features
+features, err := client.ListFeatures(ctx, &pb.ListFeaturesRequest{})
 
-#### UpdateItem
-```protobuf
-rpc UpdateItem(UpdateItemRequest) returns (Item)
-```
-Example:
-```go
-item, err := client.UpdateItem(ctx, &pb.UpdateItemRequest{
-    Id:    "123e4567-e89b-12d3-a456-426614174000",
-    Name:  "Updated Item",
-    Value: 39.99,
+// Get features for a specific resource
+features, err := client.ListFeatures(ctx, &pb.ListFeaturesRequest{
+    ResourceId: "api-settings",
 })
 ```
 
-#### DeleteItem
+#### UpdateFeature
 ```protobuf
-rpc DeleteItem(DeleteItemRequest) returns (DeleteItemResponse)
+rpc UpdateFeature(UpdateFeatureRequest) returns (Feature)
 ```
 Example:
 ```go
-response, err := client.DeleteItem(ctx, &pb.DeleteItemRequest{
+value, err := structpb.NewValue(map[string]interface{}{
+    "enabled": false,
+    "config": map[string]interface{}{
+        "timeout": 60,
+        "retries": 5,
+    },
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+feature, err := client.UpdateFeature(ctx, &pb.UpdateFeatureRequest{
+    Id:         "123e4567-e89b-12d3-a456-426614174000",
+    Name:       "retry-config",
+    Value:      value,
+    ResourceId: "api-settings",
+    Active:     false,
+})
+```
+
+#### DeleteFeature
+```protobuf
+rpc DeleteFeature(DeleteFeatureRequest) returns (DeleteFeatureResponse)
+```
+Example:
+```go
+response, err := client.DeleteFeature(ctx, &pb.DeleteFeatureRequest{
     Id: "123e4567-e89b-12d3-a456-426614174000",
 })
 ```
@@ -247,22 +292,25 @@ A complete Postman collection for testing the API is available in the `postman` 
 1. Open Postman
 2. Click "Import" and select `postman/go-sqlite-api.postman_collection.json`
 3. Create a new environment in Postman and add a variable:
-   - `item_id`: The ID of an item you've created (you'll get this after creating your first item)
+   - `feature_id`: The ID of a feature you've created (you'll get this after creating your first feature)
+   - `resource_id`: A resource identifier for testing resource-based filtering
 
 Example Usage Flow:
 
 1. **Health Check**
    - Send the "Health Check" request to verify the API is running
 
-2. **Create Item**
-   - Send the "Create Item" request
+2. **Create Feature**
+   - Send the "Create Feature" request with sample feature data
    - From the response, copy the `id` field
 
-3. **Set Environment Variable**
-   - In Postman, set the `item_id` environment variable to the ID you copied
+3. **Set Environment Variables**
+   - In Postman, set the `feature_id` environment variable to the ID you copied
+   - Set the `resource_id` variable for resource-based filtering tests
 
 4. **Test Other Operations**
    - Now you can test Get, Update, and Delete operations using the saved ID
+   - Try filtering features by resource using the saved resource_id
 
 The collection includes all API endpoints with proper headers, request bodies, and environment variables set up.
 
@@ -389,7 +437,7 @@ See `proto/feature.proto` for the complete service definition.
 
 ### Protocol Buffers
 
-If you make changes to the protocol buffer definitions (`proto/item.proto`), you'll need to regenerate the Go code:
+If you make changes to the protocol buffer definitions (`proto/feature.proto`), you'll need to regenerate the Go code:
 
 1. Install the Protocol Buffer compiler (protoc) if you haven't already:
    ```bash
@@ -410,7 +458,7 @@ If you make changes to the protocol buffer definitions (`proto/item.proto`), you
    ```bash
    protoc --go_out=. --go_opt=paths=source_relative \
           --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-          proto/item.proto
+          proto/feature.proto
    ```
 
 ### Development Workflow
@@ -419,7 +467,7 @@ When making changes to the codebase:
 
 1. **Database Changes**
    - Update the database schema in `internal/database/database.go`
-   - Update corresponding model in `internal/models/item.go`
+   - Update corresponding model in `internal/models/feature.go`
    - Run tests to verify changes: `go test ./internal/database/...`
 
 2. **REST API Changes**
@@ -428,9 +476,9 @@ When making changes to the codebase:
    - Run tests: `go test ./internal/handlers/...`
 
 3. **gRPC API Changes**
-   - Update the protocol buffer definition in `proto/item.proto`
+   - Update the protocol buffer definition in `proto/feature.proto`
    - Regenerate protocol buffer code (see above)
-   - Update the gRPC server implementation in `internal/grpc/item_server.go`
+   - Update the gRPC server implementation in `internal/grpc/feature_server.go`
    - Update corresponding tests in `internal/grpc/tests/`
    - Run tests: `go test ./internal/grpc/...`
 
