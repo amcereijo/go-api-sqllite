@@ -43,6 +43,7 @@ This is a dual REST and gRPC API built with Go and SQLite that provides feature 
 - Go 1.21 or higher
 - SQLite3
 - Protocol Buffers compiler (protoc)
+- Clerk account for authentication (https://clerk.dev/)
 
 ## Getting Started
 
@@ -51,27 +52,58 @@ This is a dual REST and gRPC API built with Go and SQLite that provides feature 
    ```bash
    go mod download
    ```
-3. Generate Protocol Buffer code (if modified):
+3. Set up Clerk Authentication:
+   - Create an account at https://clerk.dev/
+   - Create a new application in Clerk
+   - Get your JWT verification public key from Clerk Dashboard
+   - Create a `.env` file in the project root with:
+     ```bash
+     CLERK_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+     YOUR_CLERK_PUBLIC_KEY_HERE
+     -----END PUBLIC KEY-----"
+     ```
+
+4. Generate Protocol Buffer code (if modified):
    ```bash
    protoc -I=proto --go_out=. --go_opt=paths=source_relative \
           --go-grpc_out=. --go-grpc_opt=paths=source_relative \
           proto/feature.proto
    ```
 
-4. Run the application:
+5. Run the application:
    ```bash
    go run cmd/api/main.go
    ```
 
 The HTTP server will start on port 8080 and the gRPC server on port 50051.
 
+## Authentication
+
+This API uses Clerk for authentication. All endpoints except `/api/health` require a valid JWT token from Clerk.
+
+### Authentication Setup
+
+1. Create a Clerk account and application
+2. Get your JWT verification public key from Clerk Dashboard
+3. Configure the `.env` file with your Clerk public key
+4. Include the Clerk session token in all API requests:
+   ```bash
+   Authorization: Bearer <clerk_session_token>
+   ```
+
+### Public Endpoints
+Only the health check endpoint is publicly accessible without authentication.
+
+### Protected Endpoints
+All other endpoints require a valid Clerk JWT token in the Authorization header.
+
 ## API Endpoints
 
-The API provides both REST (HTTP) and gRPC endpoints for all operations.
+The API provides both REST (HTTP) and gRPC endpoints for all operations. All endpoints except `/api/health` require authentication.
 
 ### REST Endpoints
 
-#### Health Check
+#### Health Check (Public)
 - `GET /api/health` - Check if the API is running
   ```bash
   curl http://localhost:8080/api/health
@@ -177,7 +209,15 @@ The API provides both REST (HTTP) and gRPC endpoints for all operations.
 
 ### gRPC Service
 
-The gRPC service is defined in `proto/feature.proto` and provides the following operations:
+The gRPC service is defined in `proto/feature.proto` and provides the following operations. All gRPC operations require authentication via the `authorization` metadata field with a valid Clerk JWT token:
+
+```go
+// Add authentication metadata to gRPC requests
+md := metadata.New(map[string]string{
+    "authorization": "Bearer " + clerkSessionToken,
+})
+ctx := metadata.NewOutgoingContext(context.Background(), md)
+```
 
 #### CreateFeature
 ```protobuf
@@ -276,10 +316,18 @@ A complete example gRPC client is provided in `examples/grpc-client/main.go`. To
 go run cmd/api/main.go
 
 # In another terminal, run the example client
+# Make sure to set your Clerk session token in the environment
+export CLERK_SESSION_TOKEN="your_session_token"
 go run examples/grpc-client/main.go
 ```
 
 ### Error Responses
+
+Authentication Errors:
+- `401 Unauthorized` - Missing or invalid authentication token
+- `403 Forbidden` - Valid token but insufficient permissions
+
+Other Errors:
 
 - `400 Bad Request` - Invalid input (e.g., missing required fields)
 - `404 Not Found` - Resource not found
@@ -511,6 +559,8 @@ This project uses:
 - `github.com/mattn/go-sqlite3` for SQLite database operations
 - `google.golang.org/grpc` for gRPC server and client
 - `google.golang.org/protobuf` for Protocol Buffers support
+- `github.com/golang-jwt/jwt/v4` for JWT token validation
+- `github.com/joho/godotenv` for environment variable management
 
 ## License
 
