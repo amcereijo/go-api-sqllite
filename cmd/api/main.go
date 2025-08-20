@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/joho/godotenv"
+
 	"github.com/angel/go-api-sqlite/internal/database"
 	grpcserver "github.com/angel/go-api-sqlite/internal/grpc"
 	"github.com/angel/go-api-sqlite/internal/handlers"
@@ -16,6 +18,11 @@ import (
 )
 
 func main() {
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+	}
+
 	// Initialize database
 	db, err := database.InitDB()
 	if err != nil {
@@ -33,20 +40,30 @@ func main() {
 	// Initialize handlers
 	h := handlers.NewHandler(db)
 
-	// Define routes
-	router.HandleFunc("/api/health", h.HealthCheck).Methods("GET")
-	router.HandleFunc("/api/features", h.GetFeatures).Methods("GET", "OPTIONS")
-	router.HandleFunc("/api/features", h.CreateFeature).Methods("POST")
-	router.HandleFunc("/api/features/{id}", h.GetFeature).Methods("GET")
-	router.HandleFunc("/api/features/{id}", h.UpdateFeature).Methods("PUT")
-	router.HandleFunc("/api/features/{id}", h.DeleteFeature).Methods("DELETE")
+	// Public routes (no auth required)
+	publicRouter := router.PathPrefix("/api").Subrouter()
+	publicRouter.HandleFunc("/health", h.HealthCheck).Methods("GET")
+
+	// Protected routes
+	protectedRouter := router.PathPrefix("/api").Subrouter()
+	protectedRouter.Use(middleware.AuthMiddleware)
+
+	// Define protected routes
+	protectedRouter.HandleFunc("/features", h.GetFeatures).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/features", h.CreateFeature).Methods("POST")
+	protectedRouter.HandleFunc("/features/{id}", h.GetFeature).Methods("GET")
+	protectedRouter.HandleFunc("/features/{id}", h.UpdateFeature).Methods("PUT")
+	protectedRouter.HandleFunc("/features/{id}", h.DeleteFeature).Methods("DELETE")
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("Failed to listen for gRPC: %v", err)
 	}
-	s := grpc.NewServer()
+	// Create gRPC server with auth interceptor
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(middleware.GRPCAuthInterceptor()),
+	)
 	pb.RegisterFeatureServiceServer(s, grpcserver.NewFeatureServer(db))
 
 	// Start gRPC server in a goroutine
