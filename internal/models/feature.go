@@ -10,7 +10,7 @@ type Feature struct {
 	ID         string          `json:"id"`
 	Name       string          `json:"name"`
 	Value      json.RawMessage `json:"value"`
-	ResourceID string         `json:"resourceId"`
-	Active     bool           `json:"active"`
-	CreatedAt  time.Time      `json:"created_at"`
+	ResourceID string          `json:"resourceId"`
+	Active     bool            `json:"active"`
+	CreatedAt  time.Time       `json:"createdAt"`
 }

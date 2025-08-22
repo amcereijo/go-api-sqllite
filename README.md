@@ -95,7 +95,69 @@ This API uses Clerk for authentication. All endpoints except `/api/health` requi
 Only the health check endpoint is publicly accessible without authentication.
 
 ### Protected Endpoints
-All other endpoints require a valid Clerk JWT token in the Authorization header.
+All other endpoints require either:
+- A valid Clerk JWT token in the Authorization header
+- A valid API token in the X-API-Token header
+
+## API Endpoints
+
+### Authentication
+
+#### Create API Token
+- `POST /api/tokens` - Create a new API token
+  ```bash
+  curl -X POST http://localhost:8080/api/tokens \
+    -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "name": "My API Token"
+    }'
+  ```
+  Response:
+  ```json
+  {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "My API Token",
+    "createdAt": "2025-08-22T00:00:00Z",
+    "created_by_uid": "user_123",
+    "token": "YOUR_API_TOKEN"  // Only shown once at creation
+  }
+  ```
+
+#### List API Tokens
+- `GET /api/tokens` - List all API tokens for the authenticated user
+  ```bash
+  curl http://localhost:8080/api/tokens \
+    -H "Authorization: Bearer YOUR_JWT_TOKEN"
+  ```
+  Response:
+  ```json
+  [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "My API Token",
+      "createdAt": "2025-08-22T00:00:00Z",
+      "lastUsedAt": "2025-08-22T01:00:00Z",
+      "createdByUID": "user_123"
+    }
+  ]
+  ```
+
+#### Delete API Token
+- `DELETE /api/tokens/{id}` - Delete an API token
+  ```bash
+  curl -X DELETE http://localhost:8080/api/tokens/123e4567-e89b-12d3-a456-426614174000 \
+    -H "Authorization: Bearer YOUR_JWT_TOKEN"
+  ```
+  Response: `204 No Content`
+
+### Using API Tokens
+Once you have an API token, you can use it instead of JWT tokens to access protected endpoints:
+
+```bash
+curl http://localhost:8080/api/features \
+  -H "X-API-Token: YOUR_API_TOKEN"
+```
 
 ## API Endpoints
 
@@ -135,7 +197,7 @@ The API provides both REST (HTTP) and gRPC endpoints for all operations. All end
     "value": true,
     "resourceId": "ui-settings",
     "active": true,
-    "created_at": "2025-07-05T00:00:00Z"
+    "createdAt": "2025-07-05T00:00:00Z"
   }
   ```
 
@@ -154,7 +216,7 @@ The API provides both REST (HTTP) and gRPC endpoints for all operations. All end
       "value": true,
       "resourceId": "ui-settings",
       "active": true,
-      "created_at": "2025-07-05T00:00:00Z"
+      "createdAt": "2025-07-05T00:00:00Z"
     }
   ]
   ```
@@ -172,7 +234,7 @@ The API provides both REST (HTTP) and gRPC endpoints for all operations. All end
     "value": true,
     "resourceId": "ui-settings",
     "active": true,
-    "created_at": "2025-07-05T00:00:00Z"
+    "createdAt": "2025-07-05T00:00:00Z"
   }
   ```
 
@@ -196,7 +258,7 @@ The API provides both REST (HTTP) and gRPC endpoints for all operations. All end
     "value": false,
     "resourceId": "ui-settings",
     "active": false,
-    "created_at": "2025-07-05T00:00:00Z"
+    "createdAt": "2025-07-05T00:00:00Z"
   }
   ```
 

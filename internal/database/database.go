@@ -30,17 +30,31 @@ func InitDB() (*sql.DB, error) {
 
 // createTables creates the necessary database tables
 func createTables(db *sql.DB) error {
-	// Example table creation - modify according to your needs
-	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS features (
-		id TEXT PRIMARY KEY,
-		name TEXT NOT NULL,
-		value TEXT NOT NULL,
-		resource_id TEXT NOT NULL,
-		active BOOLEAN DEFAULT TRUE,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
+	tables := []string{
+		`CREATE TABLE IF NOT EXISTS features (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			value TEXT NOT NULL,
+			resource_id TEXT NOT NULL,
+			active BOOLEAN DEFAULT TRUE,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE TABLE IF NOT EXISTS api_tokens (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			token_hash TEXT NOT NULL,
+			last_used_at DATETIME,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			created_by_uid TEXT NOT NULL
+		);`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_api_tokens_token_hash ON api_tokens(token_hash);`,
+	}
 
-	_, err := db.Exec(createTableSQL)
-	return err
+	for _, table := range tables {
+		_, err := db.Exec(table)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

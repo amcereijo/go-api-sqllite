@@ -55,6 +55,14 @@ func main() {
 	protectedRouter.HandleFunc("/features/{id}", h.UpdateFeature).Methods("PUT")
 	protectedRouter.HandleFunc("/features/{id}", h.DeleteFeature).Methods("DELETE")
 
+	// API Token routes
+	protectedRouter.HandleFunc("/tokens", h.CreateAPIToken).Methods("POST")
+	protectedRouter.HandleFunc("/tokens", h.ListAPITokens).Methods("GET")
+	protectedRouter.HandleFunc("/tokens/{id}", h.DeleteAPIToken).Methods("DELETE")
+
+	// To apply for other endpoints
+	//protectedRouter.Use(middleware.APITokenMiddleware(h))
+
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
