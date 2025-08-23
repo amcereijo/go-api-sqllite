@@ -9,9 +9,6 @@ This is a dual REST and gRPC API built with Go and SQLite that provides feature 
 ├── cmd
 │   └── api
 │       └── main.go
-├── examples
-│   └── grpc-client
-│       └── main.go
 ├── postman
 │   └── go-sqlite-api.postman_collection.json
 ├── proto
@@ -21,21 +18,31 @@ This is a dual REST and gRPC API built with Go and SQLite that provides feature 
 └── internal
     ├── database
     │   └── database.go
-    ├── grpc
-    │   ├── feature_server.go
-    │   └── tests
-    │       └── feature_test.go
-    ├── handlers
-    │   ├── handlers.go
-    │   └── tests
-    │       ├── create_feature_test.go
-    │       ├── feature_operations_test.go
-    │       ├── get_features_test.go
-    │       └── test_setup.go
+    ├── delivery
+    │   ├── grpc
+    │   │   └── feature_server.go
+    │   └── http
+    │       ├── feature_handler.go
+    │       └── token_handler.go
+    ├── domain
+    │   ├── interfaces
+    │   │   └── repository.go
+    │   └── models
+    │       ├── api_token.go
+    │       └── feature.go
     ├── middleware
+    │   ├── api_token.go
+    │   ├── auth.go
     │   └── middleware.go
-    └── models
-        └── feature.go
+    ├── repositories
+    │   └── sqlite
+    │       ├── feature_repository.go
+    │       └── token_repository.go
+    └── usecases
+        ├── feature
+        │   └── feature_usecase.go
+        └── token
+            └── token_usecase.go
 ```
 
 ## Requirements
@@ -63,7 +70,10 @@ This is a dual REST and gRPC API built with Go and SQLite that provides feature 
      -----END PUBLIC KEY-----"
      ```
 
-4. Generate Protocol Buffer code (if modified):
+4. Set up the database schema:
+   The application will automatically create the required SQLite database with the necessary tables on first run.
+
+5. Generate Protocol Buffer code (if modified):
    ```bash
    protoc -I=proto --go_out=. --go_opt=paths=source_relative \
           --go-grpc_out=. --go-grpc_opt=paths=source_relative \
@@ -369,19 +379,25 @@ response, err := client.DeleteFeature(ctx, &pb.DeleteFeatureRequest{
 })
 ```
 
-### Example gRPC Client
+### Response Behavior
 
-A complete example gRPC client is provided in `examples/grpc-client/main.go`. To run it:
+The API follows consistent response patterns:
 
-```bash
-# First ensure the server is running
-go run cmd/api/main.go
+1. Empty Results:
+   - When no records are found, endpoints return empty arrays (`[]`) instead of `null`
+   - This applies to both REST and gRPC endpoints
+   - Example:
+     ```json
+     // GET /api/features (when no features exist)
+     []
 
-# In another terminal, run the example client
-# Make sure to set your Clerk session token in the environment
-export CLERK_SESSION_TOKEN="your_session_token"
-go run examples/grpc-client/main.go
-```
+     // GET /api/tokens (when no tokens exist)
+     []
+     ```
+
+2. Error Responses:
+   - HTTP 404 is returned only when requesting a specific resource by ID
+   - List endpoints return empty arrays for no results
 
 ### Error Responses
 
