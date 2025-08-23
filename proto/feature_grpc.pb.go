@@ -24,6 +24,7 @@ const (
 	FeatureService_ListFeatures_FullMethodName  = "/proto.FeatureService/ListFeatures"
 	FeatureService_UpdateFeature_FullMethodName = "/proto.FeatureService/UpdateFeature"
 	FeatureService_DeleteFeature_FullMethodName = "/proto.FeatureService/DeleteFeature"
+	FeatureService_ToggleFeature_FullMethodName = "/proto.FeatureService/ToggleFeature"
 )
 
 // FeatureServiceClient is the client API for FeatureService service.
@@ -35,6 +36,7 @@ type FeatureServiceClient interface {
 	ListFeatures(ctx context.Context, in *ListFeaturesRequest, opts ...grpc.CallOption) (*ListFeaturesResponse, error)
 	UpdateFeature(ctx context.Context, in *UpdateFeatureRequest, opts ...grpc.CallOption) (*Feature, error)
 	DeleteFeature(ctx context.Context, in *DeleteFeatureRequest, opts ...grpc.CallOption) (*DeleteFeatureResponse, error)
+	ToggleFeature(ctx context.Context, in *ToggleFeatureRequest, opts ...grpc.CallOption) (*Feature, error)
 }
 
 type featureServiceClient struct {
@@ -95,6 +97,16 @@ func (c *featureServiceClient) DeleteFeature(ctx context.Context, in *DeleteFeat
 	return out, nil
 }
 
+func (c *featureServiceClient) ToggleFeature(ctx context.Context, in *ToggleFeatureRequest, opts ...grpc.CallOption) (*Feature, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Feature)
+	err := c.cc.Invoke(ctx, FeatureService_ToggleFeature_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FeatureServiceServer is the server API for FeatureService service.
 // All implementations must embed UnimplementedFeatureServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type FeatureServiceServer interface {
 	ListFeatures(context.Context, *ListFeaturesRequest) (*ListFeaturesResponse, error)
 	UpdateFeature(context.Context, *UpdateFeatureRequest) (*Feature, error)
 	DeleteFeature(context.Context, *DeleteFeatureRequest) (*DeleteFeatureResponse, error)
+	ToggleFeature(context.Context, *ToggleFeatureRequest) (*Feature, error)
 	mustEmbedUnimplementedFeatureServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedFeatureServiceServer) UpdateFeature(context.Context, *UpdateF
 }
 func (UnimplementedFeatureServiceServer) DeleteFeature(context.Context, *DeleteFeatureRequest) (*DeleteFeatureResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteFeature not implemented")
+}
+func (UnimplementedFeatureServiceServer) ToggleFeature(context.Context, *ToggleFeatureRequest) (*Feature, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ToggleFeature not implemented")
 }
 func (UnimplementedFeatureServiceServer) mustEmbedUnimplementedFeatureServiceServer() {}
 func (UnimplementedFeatureServiceServer) testEmbeddedByValue()                        {}
@@ -240,6 +256,24 @@ func _FeatureService_DeleteFeature_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FeatureService_ToggleFeature_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ToggleFeatureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeatureServiceServer).ToggleFeature(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeatureService_ToggleFeature_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeatureServiceServer).ToggleFeature(ctx, req.(*ToggleFeatureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FeatureService_ServiceDesc is the grpc.ServiceDesc for FeatureService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var FeatureService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteFeature",
 			Handler:    _FeatureService_DeleteFeature_Handler,
+		},
+		{
+			MethodName: "ToggleFeature",
+			Handler:    _FeatureService_ToggleFeature_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

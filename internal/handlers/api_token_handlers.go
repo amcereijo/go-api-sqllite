@@ -134,7 +134,7 @@ func (h *Handler) ListAPITokens(w http.ResponseWriter, r *http.Request) {
 		tokens = append(tokens, token)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tokens)
 }
 

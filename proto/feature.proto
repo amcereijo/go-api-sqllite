@@ -13,6 +13,7 @@ service FeatureService {
   rpc ListFeatures(ListFeaturesRequest) returns (ListFeaturesResponse) {}
   rpc UpdateFeature(UpdateFeatureRequest) returns (Feature) {}
   rpc DeleteFeature(DeleteFeatureRequest) returns (DeleteFeatureResponse) {}
+  rpc ToggleFeature(ToggleFeatureRequest) returns (Feature) {}
 }
 
 message Feature {
@@ -60,4 +61,9 @@ message DeleteFeatureRequest {
 
 message DeleteFeatureResponse {
   bool success = 1;
+}
+
+message ToggleFeatureRequest {
+  string id = 1;
+  bool active = 2;
 }

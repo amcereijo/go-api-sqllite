@@ -8,9 +8,12 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/angel/go-api-sqlite/internal/database"
-	grpcserver "github.com/angel/go-api-sqlite/internal/grpc"
-	"github.com/angel/go-api-sqlite/internal/handlers"
+	grpcDelivery "github.com/angel/go-api-sqlite/internal/delivery/grpc"
+	httpDelivery "github.com/angel/go-api-sqlite/internal/delivery/http"
 	"github.com/angel/go-api-sqlite/internal/middleware"
+	"github.com/angel/go-api-sqlite/internal/repositories/sqlite"
+	"github.com/angel/go-api-sqlite/internal/usecases/feature"
+	"github.com/angel/go-api-sqlite/internal/usecases/token"
 	pb "github.com/angel/go-api-sqlite/proto"
 
 	"github.com/gorilla/mux"
@@ -30,6 +33,18 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize repositories
+	featureRepo := sqlite.NewFeatureRepository(db)
+	tokenRepo := sqlite.NewTokenRepository(db)
+
+	// Initialize use cases
+	featureUseCase := feature.NewUseCase(featureRepo)
+	tokenUseCase := token.NewUseCase(tokenRepo)
+
+	// Initialize HTTP handlers
+	featureHandler := httpDelivery.NewFeatureHandler(featureUseCase)
+	tokenHandler := httpDelivery.NewTokenHandler(tokenUseCase)
+
 	// Create router
 	router := mux.NewRouter()
 
@@ -37,42 +52,32 @@ func main() {
 	router.Methods("OPTIONS").HandlerFunc(middleware.OptionsCors)
 	router.Use(middleware.CorsMiddleware)
 
-	// Initialize handlers
-	h := handlers.NewHandler(db)
-
 	// Public routes (no auth required)
 	publicRouter := router.PathPrefix("/api").Subrouter()
-	publicRouter.HandleFunc("/health", h.HealthCheck).Methods("GET")
+	publicRouter.HandleFunc("/health", featureHandler.HealthCheck).Methods("GET")
 
 	// Protected routes
 	protectedRouter := router.PathPrefix("/api").Subrouter()
 	protectedRouter.Use(middleware.AuthMiddleware)
 
-	// Define protected routes
-	protectedRouter.HandleFunc("/features", h.GetFeatures).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/features", h.CreateFeature).Methods("POST")
-	protectedRouter.HandleFunc("/features/{id}", h.GetFeature).Methods("GET")
-	protectedRouter.HandleFunc("/features/{id}", h.UpdateFeature).Methods("PUT")
-	protectedRouter.HandleFunc("/features/{id}", h.DeleteFeature).Methods("DELETE")
-
-	// API Token routes
-	protectedRouter.HandleFunc("/tokens", h.CreateAPIToken).Methods("POST")
-	protectedRouter.HandleFunc("/tokens", h.ListAPITokens).Methods("GET")
-	protectedRouter.HandleFunc("/tokens/{id}", h.DeleteAPIToken).Methods("DELETE")
-
-	// To apply for other endpoints
-	//protectedRouter.Use(middleware.APITokenMiddleware(h))
+	// Register routes
+	featureHandler.RegisterRoutes(protectedRouter)
+	tokenHandler.RegisterRoutes(protectedRouter)
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("Failed to listen for gRPC: %v", err)
 	}
+
 	// Create gRPC server with auth interceptor
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(middleware.GRPCAuthInterceptor()),
 	)
-	pb.RegisterFeatureServiceServer(s, grpcserver.NewFeatureServer(db))
+
+	// Initialize and register gRPC service
+	grpcServer := grpcDelivery.NewFeatureServer(featureUseCase)
+	pb.RegisterFeatureServiceServer(s, grpcServer)
 
 	// Start gRPC server in a goroutine
 	go func() {

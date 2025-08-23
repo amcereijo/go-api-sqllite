@@ -495,6 +495,58 @@ func (x *DeleteFeatureResponse) GetSuccess() bool {
 	return false
 }
 
+type ToggleFeatureRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Active        bool                   `protobuf:"varint,2,opt,name=active,proto3" json:"active,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ToggleFeatureRequest) Reset() {
+	*x = ToggleFeatureRequest{}
+	mi := &file_proto_feature_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToggleFeatureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToggleFeatureRequest) ProtoMessage() {}
+
+func (x *ToggleFeatureRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_feature_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToggleFeatureRequest.ProtoReflect.Descriptor instead.
+func (*ToggleFeatureRequest) Descriptor() ([]byte, []int) {
+	return file_proto_feature_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ToggleFeatureRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ToggleFeatureRequest) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
+}
+
 var File_proto_feature_proto protoreflect.FileDescriptor
 
 const file_proto_feature_proto_rawDesc = "" +
@@ -536,14 +588,18 @@ const file_proto_feature_proto_rawDesc = "" +
 	"\x14DeleteFeatureRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"1\n" +
 	"\x15DeleteFeatureResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xe3\x02\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\">\n" +
+	"\x14ToggleFeatureRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06active\x18\x02 \x01(\bR\x06active2\xa3\x03\n" +
 	"\x0eFeatureService\x12>\n" +
 	"\rCreateFeature\x12\x1b.proto.CreateFeatureRequest\x1a\x0e.proto.Feature\"\x00\x128\n" +
 	"\n" +
 	"GetFeature\x12\x18.proto.GetFeatureRequest\x1a\x0e.proto.Feature\"\x00\x12I\n" +
 	"\fListFeatures\x12\x1a.proto.ListFeaturesRequest\x1a\x1b.proto.ListFeaturesResponse\"\x00\x12>\n" +
 	"\rUpdateFeature\x12\x1b.proto.UpdateFeatureRequest\x1a\x0e.proto.Feature\"\x00\x12L\n" +
-	"\rDeleteFeature\x12\x1b.proto.DeleteFeatureRequest\x1a\x1c.proto.DeleteFeatureResponse\"\x00B\x16Z\x14go-api-sqllite/protob\x06proto3"
+	"\rDeleteFeature\x12\x1b.proto.DeleteFeatureRequest\x1a\x1c.proto.DeleteFeatureResponse\"\x00\x12>\n" +
+	"\rToggleFeature\x12\x1b.proto.ToggleFeatureRequest\x1a\x0e.proto.Feature\"\x00B&Z$github.com/angel/go-api-sqlite/protob\x06proto3"
 
 var (
 	file_proto_feature_proto_rawDescOnce sync.Once
@@ -557,7 +613,7 @@ func file_proto_feature_proto_rawDescGZIP() []byte {
 	return file_proto_feature_proto_rawDescData
 }
 
-var file_proto_feature_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_feature_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_feature_proto_goTypes = []any{
 	(*Feature)(nil),               // 0: proto.Feature
 	(*CreateFeatureRequest)(nil),  // 1: proto.CreateFeatureRequest
@@ -567,27 +623,30 @@ var file_proto_feature_proto_goTypes = []any{
 	(*UpdateFeatureRequest)(nil),  // 5: proto.UpdateFeatureRequest
 	(*DeleteFeatureRequest)(nil),  // 6: proto.DeleteFeatureRequest
 	(*DeleteFeatureResponse)(nil), // 7: proto.DeleteFeatureResponse
-	(*structpb.Value)(nil),        // 8: google.protobuf.Value
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(*ToggleFeatureRequest)(nil),  // 8: proto.ToggleFeatureRequest
+	(*structpb.Value)(nil),        // 9: google.protobuf.Value
+	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_proto_feature_proto_depIdxs = []int32{
-	8,  // 0: proto.Feature.value:type_name -> google.protobuf.Value
-	9,  // 1: proto.Feature.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 2: proto.CreateFeatureRequest.value:type_name -> google.protobuf.Value
+	9,  // 0: proto.Feature.value:type_name -> google.protobuf.Value
+	10, // 1: proto.Feature.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 2: proto.CreateFeatureRequest.value:type_name -> google.protobuf.Value
 	0,  // 3: proto.ListFeaturesResponse.features:type_name -> proto.Feature
-	8,  // 4: proto.UpdateFeatureRequest.value:type_name -> google.protobuf.Value
+	9,  // 4: proto.UpdateFeatureRequest.value:type_name -> google.protobuf.Value
 	1,  // 5: proto.FeatureService.CreateFeature:input_type -> proto.CreateFeatureRequest
 	2,  // 6: proto.FeatureService.GetFeature:input_type -> proto.GetFeatureRequest
 	3,  // 7: proto.FeatureService.ListFeatures:input_type -> proto.ListFeaturesRequest
 	5,  // 8: proto.FeatureService.UpdateFeature:input_type -> proto.UpdateFeatureRequest
 	6,  // 9: proto.FeatureService.DeleteFeature:input_type -> proto.DeleteFeatureRequest
-	0,  // 10: proto.FeatureService.CreateFeature:output_type -> proto.Feature
-	0,  // 11: proto.FeatureService.GetFeature:output_type -> proto.Feature
-	4,  // 12: proto.FeatureService.ListFeatures:output_type -> proto.ListFeaturesResponse
-	0,  // 13: proto.FeatureService.UpdateFeature:output_type -> proto.Feature
-	7,  // 14: proto.FeatureService.DeleteFeature:output_type -> proto.DeleteFeatureResponse
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
+	8,  // 10: proto.FeatureService.ToggleFeature:input_type -> proto.ToggleFeatureRequest
+	0,  // 11: proto.FeatureService.CreateFeature:output_type -> proto.Feature
+	0,  // 12: proto.FeatureService.GetFeature:output_type -> proto.Feature
+	4,  // 13: proto.FeatureService.ListFeatures:output_type -> proto.ListFeaturesResponse
+	0,  // 14: proto.FeatureService.UpdateFeature:output_type -> proto.Feature
+	7,  // 15: proto.FeatureService.DeleteFeature:output_type -> proto.DeleteFeatureResponse
+	0,  // 16: proto.FeatureService.ToggleFeature:output_type -> proto.Feature
+	11, // [11:17] is the sub-list for method output_type
+	5,  // [5:11] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -604,7 +663,7 @@ func file_proto_feature_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_feature_proto_rawDesc), len(file_proto_feature_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
