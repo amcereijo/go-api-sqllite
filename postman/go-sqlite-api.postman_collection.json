@@ -1,8 +1,14 @@
 {
   "info": {
     "name": "Go SQLite API - Feature Flags",
-    "description": "REST API for Feature Flag CRUD operations",
+    "description": "REST API for Feature Flag CRUD operations with authentication",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": {
+      "token": "{{auth_token}}"
+    }
   },
   "item": [
     {
@@ -14,81 +20,212 @@
       }
     },
     {
-      "name": "Create Feature",
-      "request": {
-        "method": "POST",
-        "url": "http://localhost:8080/api/features",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+      "name": "Token Management",
+      "item": [
+        {
+          "name": "Create API Token",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/api/tokens",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"dev-token\",\n  \"permissions\": [\"read:features\", \"write:features\"]\n}"
+            }
           }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"dark-mode\",\n  \"value\": true,\n  \"resourceId\": \"ui-settings\",\n  \"active\": true\n}"
-        }
-      }
-    },
-    {
-      "name": "Get All Features",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:8080/api/features",
-        "header": []
-      }
-    },
-    {
-      "name": "Get Features by Resource",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:8080/api/features?resourceId={{resource_id}}",
-        "header": []
-      }
-    },
-    {
-      "name": "Get Single Feature",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:8080/api/features/{{feature_id}}",
-        "header": []
-      }
-    },
-    {
-      "name": "Update Feature",
-      "request": {
-        "method": "PUT",
-        "url": "http://localhost:8080/api/features/{{feature_id}}",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+        },
+        {
+          "name": "Revoke API Token",
+          "request": {
+            "method": "DELETE",
+            "url": "http://localhost:8080/api/tokens/{{token_id}}",
+            "header": []
           }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"dark-mode\",\n  \"value\": false,\n  \"resourceId\": \"ui-settings\",\n  \"active\": false\n}"
+        },
+        {
+          "name": "List API Tokens",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/tokens",
+            "header": []
+          }
         }
-      }
+      ]
     },
     {
-      "name": "Delete Feature",
-      "request": {
-        "method": "DELETE",
-        "url": "http://localhost:8080/api/features/{{feature_id}}",
-        "header": []
-      }
+      "name": "Feature Management",
+      "item": [
+        {
+          "name": "Create Feature",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/api/features",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"dark-mode\",\n  \"value\": true,\n  \"resourceId\": \"ui-settings\",\n  \"active\": true,\n  \"description\": \"Enable dark mode theme\",\n  \"tags\": [\"ui\", \"theme\"],\n  \"constraints\": {\n    \"environment\": [\"development\", \"staging\"]\n  }\n}"
+            },
+            "description": "Creates a new feature flag. Requires write:features permission."
+          }
+        },
+        {
+          "name": "Get All Features",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/features",
+            "header": [],
+            "description": "List all feature flags. Requires read:features permission."
+          }
+        },
+        {
+          "name": "Get Features by Resource",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/features",
+            "header": [],
+            "query": [
+              {
+                "key": "resourceId",
+                "value": "{{resource_id}}"
+              },
+              {
+                "key": "environment",
+                "value": "{{environment}}",
+                "description": "Optional environment filter"
+              },
+              {
+                "key": "tag",
+                "value": "{{tag}}",
+                "description": "Optional tag filter"
+              }
+            ],
+            "description": "Get features filtered by resource ID and optional parameters. Requires read:features permission."
+          }
+        },
+        {
+          "name": "Get Single Feature",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api/features/{{feature_id}}",
+            "header": [],
+            "description": "Get a specific feature by ID. Requires read:features permission."
+          }
+        },
+        {
+          "name": "Update Feature",
+          "request": {
+            "method": "PUT",
+            "url": "http://localhost:8080/api/features/{{feature_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"dark-mode\",\n  \"value\": false,\n  \"resourceId\": \"ui-settings\",\n  \"active\": false,\n  \"description\": \"Enable dark mode theme - updated\",\n  \"tags\": [\"ui\", \"theme\", \"updated\"],\n  \"constraints\": {\n    \"environment\": [\"development\"]\n  }\n}"
+            },
+            "description": "Update an existing feature flag. Requires write:features permission."
+          }
+        },
+        {
+          "name": "Delete Feature",
+          "request": {
+            "method": "DELETE",
+            "url": "http://localhost:8080/api/features/{{feature_id}}",
+            "header": [],
+            "description": "Delete a feature flag. Requires write:features permission."
+          }
+        },
+        {
+          "name": "Bulk Update Features",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/api/features/bulk",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"features\": [\n    {\n      \"id\": \"{{feature_id}}\",\n      \"active\": false\n    },\n    {\n      \"id\": \"{{feature_id_2}}\",\n      \"active\": true\n    }\n  ]\n}"
+            },
+            "description": "Update multiple features in a single request. Requires write:features permission."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feature Evaluation",
+      "item": [
+        {
+          "name": "Evaluate Features",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/api/features/evaluate",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceId\": \"{{resource_id}}\",\n  \"environment\": \"{{environment}}\",\n  \"context\": {\n    \"userId\": \"user123\",\n    \"groups\": [\"beta-testers\"]\n  }\n}"
+            },
+            "description": "Evaluate features for a given context. Requires read:features permission."
+          }
+        }
+      ]
     }
   ],
   "variable": [
+    {
+      "key": "auth_token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    },
     {
       "key": "feature_id",
       "value": "123e4567-e89b-12d3-a456-426614174000",
       "type": "string"
     },
     {
+      "key": "feature_id_2",
+      "value": "123e4567-e89b-12d3-a456-426614174001",
+      "type": "string"
+    },
+    {
       "key": "resource_id",
       "value": "ui-settings",
+      "type": "string"
+    },
+    {
+      "key": "environment",
+      "value": "development",
+      "type": "string"
+    },
+    {
+      "key": "tag",
+      "value": "ui",
+      "type": "string"
+    },
+    {
+      "key": "token_id",
+      "value": "token123",
       "type": "string"
     }
   ]
