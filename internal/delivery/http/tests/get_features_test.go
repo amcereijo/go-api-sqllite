@@ -8,55 +8,47 @@ import (
 	"testing"
 	"time"
 
-	"github.com/angel/go-api-sqlite/internal/handlers"
-	"github.com/angel/go-api-sqlite/internal/models"
-
-	"github.com/google/uuid"
+	delivery "github.com/angel/go-api-sqlite/internal/delivery/http"
+	"github.com/angel/go-api-sqlite/internal/domain/models"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestGetFeatures(t *testing.T) {
 	// Setup
-	db := setupTestDB(t)
-	defer db.Close()
-	h := handlers.NewHandler(db)
+	mockUseCase := new(MockFeatureUseCase)
+	handler := delivery.NewFeatureHandler(mockUseCase)
+	router := mux.NewRouter()
+	handler.RegisterRoutes(router)
 
-	// Insert test features
-	features := []models.Feature{
+	// Test features
+	testTime := time.Now()
+	features := []*models.Feature{
 		{
-			ID:         uuid.New().String(),
+			ID:         "1",
 			Name:       "Feature 1",
 			Value:      json.RawMessage(`"value-1"`),
 			ResourceID: "resource-1",
 			Active:     true,
-			CreatedAt:  time.Now(),
+			CreatedAt:  testTime,
 		},
 		{
-			ID:         uuid.New().String(),
+			ID:         "2",
 			Name:       "Feature 2",
 			Value:      json.RawMessage(`42`),
 			ResourceID: "resource-1",
 			Active:     false,
-			CreatedAt:  time.Now(),
+			CreatedAt:  testTime,
 		},
 		{
-			ID:         uuid.New().String(),
+			ID:         "3",
 			Name:       "Feature 3",
 			Value:      json.RawMessage(`{"key":"value"}`),
 			ResourceID: "resource-2",
 			Active:     true,
-			CreatedAt:  time.Now(),
+			CreatedAt:  testTime,
 		},
-	}
-
-	for _, f := range features {
-		valueStr, err := f.Value.MarshalJSON()
-		assert.NoError(t, err)
-		_, err = db.Exec(
-			"INSERT INTO features (id, name, value, resource_id, active, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-			f.ID, f.Name, string(valueStr), f.ResourceID, f.Active, f.CreatedAt,
-		)
-		assert.NoError(t, err)
 	}
 
 	tests := []struct {
@@ -90,32 +82,49 @@ func TestGetFeatures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock expectations
+			mockUseCase.On("GetAllFeatures", mock.Anything).Return(features, nil)
+
 			// Create request
-			url := "/api/features"
+			url := "/features"
 			if tt.resourceID != "" {
-				url = fmt.Sprintf("%s?resourceId=%s", url, tt.resourceID)
+				url = fmt.Sprintf("%s?resource_id=%s", url, tt.resourceID)
 			}
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
 
-			// Call handler
-			h.GetFeatures(w, req)
+			// Call handler through router
+			router.ServeHTTP(w, req)
 
 			// Check status code
 			assert.Equal(t, tt.wantStatus, w.Code)
 
 			// Parse response
-			var resp []models.Feature
+			var resp []*models.Feature
 			err := json.NewDecoder(w.Body).Decode(&resp)
 			assert.NoError(t, err)
 
 			// Check response
-			assert.Len(t, resp, tt.wantCount)
-			if tt.wantResourceID != "" {
-				for _, f := range resp {
+			filteredFeatures := make([]*models.Feature, 0)
+			if tt.resourceID == "" {
+				filteredFeatures = features
+			} else {
+				for _, f := range features {
+					if f.ResourceID == tt.resourceID {
+						filteredFeatures = append(filteredFeatures, f)
+					}
+				}
+			}
+			assert.Equal(t, len(filteredFeatures), len(resp))
+
+			for _, f := range resp {
+				if tt.wantResourceID != "" {
 					assert.Equal(t, tt.wantResourceID, f.ResourceID)
 				}
 			}
+
+			// Verify mock expectations
+			mockUseCase.AssertExpectations(t)
 		})
 	}
 }

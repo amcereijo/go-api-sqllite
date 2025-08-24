@@ -42,6 +42,7 @@ func main() {
 	tokenUseCase := token.NewUseCase(tokenRepo)
 
 	// Initialize HTTP handlers
+	healthHandler := httpDelivery.NewHealthHandler()
 	featureHandler := httpDelivery.NewFeatureHandler(featureUseCase)
 	tokenHandler := httpDelivery.NewTokenHandler(tokenUseCase)
 
@@ -54,7 +55,7 @@ func main() {
 
 	// Public routes (no auth required)
 	publicRouter := router.PathPrefix("/api").Subrouter()
-	publicRouter.HandleFunc("/health", featureHandler.HealthCheck).Methods("GET")
+	publicRouter.HandleFunc("/health", healthHandler.HealthCheck).Methods("GET")
 
 	// Protected routes
 	protectedRouter := router.PathPrefix("/api").Subrouter()

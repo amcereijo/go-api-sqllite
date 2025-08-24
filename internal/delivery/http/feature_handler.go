@@ -21,12 +21,6 @@ func NewFeatureHandler(useCase interfaces.FeatureUseCase) *FeatureHandler {
 	}
 }
 
-// HealthCheck handles the health check endpoint
-func (h *FeatureHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
-}
-
 // RegisterRoutes registers the feature routes
 func (h *FeatureHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/features", h.CreateFeature).Methods("POST")
@@ -47,10 +41,10 @@ func (h *FeatureHandler) CreateFeature(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.useCase.CreateFeature(r.Context(), &feature); err != nil {
 		if err == models.ErrEmptyFeatureName || err == models.ErrEmptyResourceID {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeError(w, err, http.StatusBadRequest)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -63,8 +57,19 @@ func (h *FeatureHandler) CreateFeature(w http.ResponseWriter, r *http.Request) {
 func (h *FeatureHandler) GetFeatures(w http.ResponseWriter, r *http.Request) {
 	features, err := h.useCase.GetAllFeatures(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err, http.StatusInternalServerError)
 		return
+	}
+
+	resourceID := r.URL.Query().Get("resource_id")
+	if resourceID != "" {
+		filteredFeatures := make([]*models.Feature, 0)
+		for _, f := range features {
+			if f.ResourceID == resourceID {
+				filteredFeatures = append(filteredFeatures, f)
+			}
+		}
+		features = filteredFeatures
 	}
 
 	w.Header().Set("Content-Type", "application/json")
