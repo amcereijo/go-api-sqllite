@@ -9,40 +9,62 @@ This is a dual REST and gRPC API built with Go and SQLite that provides feature 
 ├── cmd
 │   └── api
 │       └── main.go
+├── examples
+│   └── grpc-client
+│       └── main.go
+├── internal
+│   ├── database
+│   │   └── database.go
+│   ├── delivery
+│   │   ├── grpc
+│   │   │   ├── feature_server.go
+│   │   │   └── tests
+│   │   │       ├── feature_test.go
+│   │   │       └── mock_feature_usecase.go
+│   │   └── http
+│   │       ├── error_response.go
+│   │       ├── feature_handler.go
+│   │       ├── health_handler.go
+│   │       ├── token_handler.go
+│   │       └── tests
+│   │           ├── create_feature_test.go
+│   │           ├── feature_operations_test.go
+│   │           ├── get_features_test.go
+│   │           ├── health_test.go
+│   │           ├── mock_feature_usecase.go
+│   │           └── test_setup.go
+│   ├── domain
+│   │   ├── interfaces
+│   │   │   └── repository.go
+│   │   └── models
+│   │       ├── api_token.go
+│   │       └── feature.go
+│   ├── grpc
+│   ├── middleware
+│   │   ├── auth.go
+│   │   └── middleware.go
+│   ├── models
+│   │   ├── api_token.go
+│   │   └── feature.go
+│   ├── repositories
+│   │   └── sqlite
+│   │       ├── feature_repository.go
+│   │       └── token_repository.go
+│   └── usecases
+│       ├── feature
+│       │   └── feature_usecase.go
+│       ├── interfaces
+│       │   ├── feature.go
+│       │   └── token.go
+│       └── token
+│           └── token_usecase.go
+├── pkg
 ├── postman
 │   └── go-sqlite-api.postman_collection.json
-├── proto
-│   ├── feature.proto
-│   ├── feature.pb.go
-│   └── feature_grpc.pb.go
-└── internal
-    ├── database
-    │   └── database.go
-    ├── delivery
-    │   ├── grpc
-    │   │   └── feature_server.go
-    │   └── http
-    │       ├── feature_handler.go
-    │       └── token_handler.go
-    ├── domain
-    │   ├── interfaces
-    │   │   └── repository.go
-    │   └── models
-    │       ├── api_token.go
-    │       └── feature.go
-    ├── middleware
-    │   ├── api_token.go
-    │   ├── auth.go
-    │   └── middleware.go
-    ├── repositories
-    │   └── sqlite
-    │       ├── feature_repository.go
-    │       └── token_repository.go
-    └── usecases
-        ├── feature
-        │   └── feature_usecase.go
-        └── token
-            └── token_usecase.go
+└── proto
+    ├── feature_grpc.pb.go
+    ├── feature.pb.go
+    └── feature.proto
 ```
 
 ## Requirements
