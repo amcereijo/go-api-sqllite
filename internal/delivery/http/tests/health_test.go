@@ -6,22 +6,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/angel/go-api-sqlite/internal/handlers"
+	delivery "github.com/angel/go-api-sqlite/internal/delivery/http"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthCheck(t *testing.T) {
 	// Setup
-	db := setupTestDB(t)
-	defer db.Close()
-	h := handlers.NewHandler(db)
+	handler := delivery.NewHealthHandler()
 
 	// Create a new HTTP request
-	req := httptest.NewRequest("GET", "/api/health", nil)
+	req := httptest.NewRequest("GET", "/health", nil)
 	w := httptest.NewRecorder()
 
-	// Call the handler
-	h.HealthCheck(w, req)
+	// Call the handler directly
+	handler.HealthCheck(w, req)
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, w.Code)

@@ -5,15 +5,27 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/joho/godotenv"
+
 	"github.com/angel/go-api-sqlite/internal/database"
-	grpcserver "github.com/angel/go-api-sqlite/internal/grpc"
-	"github.com/angel/go-api-sqlite/internal/handlers"
+	grpcDelivery "github.com/angel/go-api-sqlite/internal/delivery/grpc"
+	httpDelivery "github.com/angel/go-api-sqlite/internal/delivery/http"
+	"github.com/angel/go-api-sqlite/internal/middleware"
+	"github.com/angel/go-api-sqlite/internal/repositories/sqlite"
+	"github.com/angel/go-api-sqlite/internal/usecases/feature"
+	"github.com/angel/go-api-sqlite/internal/usecases/token"
 	pb "github.com/angel/go-api-sqlite/proto"
+
 	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
 )
 
 func main() {
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+	}
+
 	// Initialize database
 	db, err := database.InitDB()
 	if err != nil {
@@ -21,27 +33,52 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize repositories
+	featureRepo := sqlite.NewFeatureRepository(db)
+	tokenRepo := sqlite.NewTokenRepository(db)
+
+	// Initialize use cases
+	featureUseCase := feature.NewUseCase(featureRepo)
+	tokenUseCase := token.NewUseCase(tokenRepo)
+
+	// Initialize HTTP handlers
+	healthHandler := httpDelivery.NewHealthHandler()
+	featureHandler := httpDelivery.NewFeatureHandler(featureUseCase)
+	tokenHandler := httpDelivery.NewTokenHandler(tokenUseCase)
+
 	// Create router
 	router := mux.NewRouter()
 
-	// Initialize handlers
-	h := handlers.NewHandler(db)
+	// Apply CORS configuration
+	router.Methods("OPTIONS").HandlerFunc(middleware.OptionsCors)
+	router.Use(middleware.CorsMiddleware)
 
-	// Define routes
-	router.HandleFunc("/api/health", h.HealthCheck).Methods("GET")
-	router.HandleFunc("/api/items", h.GetItems).Methods("GET")
-	router.HandleFunc("/api/items", h.CreateItem).Methods("POST")
-	router.HandleFunc("/api/items/{id}", h.GetItem).Methods("GET")
-	router.HandleFunc("/api/items/{id}", h.UpdateItem).Methods("PUT")
-	router.HandleFunc("/api/items/{id}", h.DeleteItem).Methods("DELETE")
+	// Public routes (no auth required)
+	publicRouter := router.PathPrefix("/api").Subrouter()
+	publicRouter.HandleFunc("/health", healthHandler.HealthCheck).Methods("GET")
+
+	// Protected routes
+	protectedRouter := router.PathPrefix("/api").Subrouter()
+	protectedRouter.Use(middleware.AuthMiddleware)
+
+	// Register routes
+	featureHandler.RegisterRoutes(protectedRouter)
+	tokenHandler.RegisterRoutes(protectedRouter)
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("Failed to listen for gRPC: %v", err)
 	}
-	s := grpc.NewServer()
-	pb.RegisterItemServiceServer(s, grpcserver.NewItemServer(db))
+
+	// Create gRPC server with auth interceptor
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(middleware.GRPCAuthInterceptor()),
+	)
+
+	// Initialize and register gRPC service
+	grpcServer := grpcDelivery.NewFeatureServer(featureUseCase)
+	pb.RegisterFeatureServiceServer(s, grpcServer)
 
 	// Start gRPC server in a goroutine
 	go func() {

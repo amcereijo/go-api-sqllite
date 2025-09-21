@@ -6,8 +6,10 @@ import (
 	"time"
 
 	pb "github.com/angel/go-api-sqlite/proto"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func main() {
@@ -19,72 +21,81 @@ func main() {
 	defer conn.Close()
 
 	// Create client
-	client := pb.NewItemServiceClient(conn)
+	client := pb.NewFeatureServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Create an item
-	log.Println("Creating item...")
-	item, err := client.CreateItem(ctx, &pb.CreateItemRequest{
-		Name:  "Test Item",
-		Value: 29.99,
+	// Create sample value
+	value, err := structpb.NewValue(map[string]interface{}{
+		"enabled": true,
+		"config": map[string]interface{}{
+			"timeout": 30,
+			"retries": 3,
+		},
 	})
 	if err != nil {
-		log.Fatalf("Failed to create item: %v", err)
+		log.Fatalf("Failed to create value: %v", err)
 	}
-	log.Printf("Created item: ID=%s, Name=%s, Value=%.2f\n", item.Id, item.Name, item.Value)
 
-	// Get the item
-	log.Println("\nGetting item...")
-	getItem, err := client.GetItem(ctx, &pb.GetItemRequest{
-		Id: item.Id,
+	// Create a feature
+	log.Println("Creating feature...")
+	feature, err := client.CreateFeature(ctx, &pb.CreateFeatureRequest{
+		Name:       "Test Feature",
+		Value:      value,
+		ResourceId: "test-resource",
+		Active:     true,
 	})
 	if err != nil {
-		log.Fatalf("Failed to get item: %v", err)
+		log.Fatalf("Failed to create feature: %v", err)
 	}
-	log.Printf("Got item: ID=%s, Name=%s, Value=%.2f\n", getItem.Id, getItem.Name, getItem.Value)
+	log.Printf("Feature created: %v\n", feature)
 
-	// Update the item
-	log.Println("\nUpdating item...")
-	updatedItem, err := client.UpdateItem(ctx, &pb.UpdateItemRequest{
-		Id:    item.Id,
-		Name:  "Updated Test Item",
-		Value: 39.99,
+	// Get the feature
+	log.Printf("Getting feature %s...\n", feature.Id)
+	getResp, err := client.GetFeature(ctx, &pb.GetFeatureRequest{Id: feature.Id})
+	if err != nil {
+		log.Fatalf("Failed to get feature: %v", err)
+	}
+	log.Printf("Got feature: %v\n", getResp)
+
+	// Update the feature
+	log.Printf("Updating feature %s...\n", feature.Id)
+	updateValue, err := structpb.NewValue(map[string]interface{}{
+		"enabled": false,
+		"config": map[string]interface{}{
+			"timeout": 60,
+			"retries": 5,
+		},
 	})
 	if err != nil {
-		log.Fatalf("Failed to update item: %v", err)
-	}
-	log.Printf("Updated item: ID=%s, Name=%s, Value=%.2f\n", updatedItem.Id, updatedItem.Name, updatedItem.Value)
-
-	// List all items
-	log.Println("\nListing all items...")
-	listResponse, err := client.ListItems(ctx, &pb.ListItemsRequest{})
-	if err != nil {
-		log.Fatalf("Failed to list items: %v", err)
-	}
-	log.Printf("Found %d items:\n", len(listResponse.Items))
-	for _, it := range listResponse.Items {
-		log.Printf("- ID=%s, Name=%s, Value=%.2f\n", it.Id, it.Name, it.Value)
+		log.Fatalf("Failed to create update value: %v", err)
 	}
 
-	// Delete the item
-	log.Println("\nDeleting item...")
-	deleteResponse, err := client.DeleteItem(ctx, &pb.DeleteItemRequest{
-		Id: item.Id,
+	updateResp, err := client.UpdateFeature(ctx, &pb.UpdateFeatureRequest{
+		Id:         feature.Id,
+		Name:       "Updated Feature",
+		Value:      updateValue,
+		ResourceId: "test-resource",
+		Active:     false,
 	})
 	if err != nil {
-		log.Fatalf("Failed to delete item: %v", err)
+		log.Fatalf("Failed to update feature: %v", err)
 	}
-	log.Printf("Delete success: %v\n", deleteResponse.Success)
+	log.Printf("Updated feature: %v\n", updateResp)
 
-	// Verify deletion by trying to get the item
-	log.Println("\nVerifying deletion...")
-	_, err = client.GetItem(ctx, &pb.GetItemRequest{
-		Id: item.Id,
-	})
+	// List all features
+	log.Println("Listing all features...")
+	listResp, err := client.ListFeatures(ctx, &pb.ListFeaturesRequest{})
 	if err != nil {
-		log.Printf("Item successfully deleted, got expected error: %v\n", err)
-	} else {
-		log.Fatal("Item still exists after deletion!")
+		log.Fatalf("Failed to list features: %v", err)
 	}
+	log.Printf("Found %d features\n", len(listResp.Features))
+
+	// Delete the feature
+	log.Printf("Deleting feature %s...\n", feature.Id)
+	_, err = client.DeleteFeature(ctx, &pb.DeleteFeatureRequest{Id: feature.Id})
+	if err != nil {
+		log.Fatalf("Failed to delete feature: %v", err)
+	}
+	log.Println("Feature deleted successfully")
 }
